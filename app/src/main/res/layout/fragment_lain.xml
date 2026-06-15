@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/flRaiz"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <!-- Escena principal (GIF) -->
+    <ImageView
+        android:id="@+id/ivEscena"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="Escena de Lain"
+        android:scaleType="centerCrop" />
+
+    <!-- Game over -->
+    <TextView
+        android:id="@+id/tvTextoGrande"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:paddingStart="24dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="16dp"
+        android:textColor="@color/white"
+        android:textSize="48sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <!-- Panel  -->
+    <LinearLayout
+        android:id="@+id/llPanelDialogo"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="28dp"
+        android:background="@drawable/fondo_negro"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvMensaje"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:lineSpacingExtra="4dp"
+            android:text="Hola..."
+            android:textColor="@android:color/white"
+            android:textSize="20sp" />
+
+        <EditText
+            android:id="@+id/etEntrada"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="0dp"
+            android:background="@drawable/fondo_negro_con_marco"
+            android:hint="Escribe aquí"
+            android:imeOptions="actionDone"
+            android:inputType="text"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:singleLine="true"
+            android:textColor="@android:color/white"
+            android:textColorHint="#BFFFFFFF"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEnviar"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="0dp"
+            android:text="Continuar"
+            android:textColor="@android:color/white"
+            android:visibility="gone"
+            app:backgroundTint="@android:color/black"
+            app:cornerRadius="16dp"
+            app:strokeColor="@android:color/white"
+            app:strokeWidth="1dp" />
+
+        <LinearLayout
+            android:id="@+id/llContenedorOpciones"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="0dp"
+            android:orientation="vertical"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</FrameLayout>
