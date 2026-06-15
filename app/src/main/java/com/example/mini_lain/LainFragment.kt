@@ -24,6 +24,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
+import android.media.MediaPlayer
+import android.media.AudioAttributes
+import android.media.SoundPool
 
 class LainFragment : Fragment() {
 
@@ -38,7 +41,12 @@ class LainFragment : Fragment() {
     private var escenaActual: Int = R.drawable.lain_base
     private var trabajoSecuencia: Job? = null
     private val retrasoAutomaticoMs = 2000L
+    private var reproductorMusicaFondo: MediaPlayer? = null
 
+    private var reproductorEfectos: SoundPool? = null
+    private var idSonidoRisa: Int = 0
+    private var risaCargada: Boolean = false
+    private var risaReproducida: Boolean = false
     private var estadoActual: EstadoFlujo = EstadoFlujo.INICIO
     private var textoGrandeActual: String = ""
 
@@ -71,6 +79,9 @@ class LainFragment : Fragment() {
         private const val CLAVE_ESCENA_ACTUAL = "escena_actual"
         private const val CLAVE_ESTADO_ACTUAL = "estado_actual"
         private const val CLAVE_TEXTO_GRANDE = "texto_grande"
+        private const val CLAVE_RISA = "risa"
+        private const val VOLUMEN_MUSICA_FONDO = 0.35f
+        private const val VOLUMEN_RISA = 1.0f
     }
 
     // Ciclo de Android
@@ -88,6 +99,8 @@ class LainFragment : Fragment() {
         cache = requireContext().getSharedPreferences("mini_lain_cache", Context.MODE_PRIVATE)
 
         configurarAccionTecladoEntrada()
+        inicializarEfectosSonido()
+        iniciarMusicaFondo()
 
         if (savedInstanceState == null) {
             iniciarFlujo()
@@ -104,10 +117,22 @@ class LainFragment : Fragment() {
         outState.putInt(CLAVE_ESCENA_ACTUAL, escenaActual)
         outState.putString(CLAVE_ESTADO_ACTUAL, estadoActual.name)
         outState.putString(CLAVE_TEXTO_GRANDE, textoGrandeActual)
+        outState.putBoolean(CLAVE_RISA, risaReproducida)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        reanudarMusicaFondo()
+    }
+
+    override fun onPause() {
+        pausarMusicaFondo()
+        super.onPause()
     }
 
     override fun onDestroyView() {
         trabajoSecuencia?.cancel()
+        liberarReproductoresAudio()
         Glide.with(this).clear(binding.ivEscena)
         _binding = null
         super.onDestroyView()
@@ -125,6 +150,11 @@ class LainFragment : Fragment() {
         )
 
         textoGrandeActual = savedInstanceState.getString(CLAVE_TEXTO_GRANDE, "")
+
+        risaReproducida = savedInstanceState.getBoolean(
+            CLAVE_RISA,
+            false
+        )
 
         mostrarEscena(escenaActual)
 
@@ -271,7 +301,7 @@ class LainFragment : Fragment() {
             opciones = listOf(
                 Opcion(nombreJugador) {
                     mostrarLinea(
-                        texto = "No, tú eres $nombreJugador"
+                        texto = "No, tú eres Lain yo soy $nombreJugador"
                     ) {
                         iniciarSecuenciaReaparicion()
                     }
@@ -332,6 +362,7 @@ class LainFragment : Fragment() {
     }
 
     private fun iniciarRetoNumero() {
+        risaReproducida = false
         numeroSecreto = Random.nextInt(1, 6)
         preguntarNumero()
     }
@@ -359,6 +390,8 @@ class LainFragment : Fragment() {
 
     private fun mostrarNotificacionIncorrectaYEscape() {
         estadoActual = EstadoFlujo.NOTIFICACION_INCORRECTA
+
+        reproducirRisa()
 
         mostrarLinea(
             texto = "Jajaja, parece que te quedarás un buen rato aquí Lain..."
@@ -694,5 +727,108 @@ class LainFragment : Fragment() {
 
     private fun convertirADp(valor: Int): Int {
         return (valor * resources.displayMetrics.density).toInt()
+    }
+
+    // Audio
+
+    private fun iniciarMusicaFondo() {
+        if (reproductorMusicaFondo != null) return
+
+        reproductorMusicaFondo = MediaPlayer.create(requireContext(), R.raw.musica)?.apply {
+            isLooping = true
+            setVolume(VOLUMEN_MUSICA_FONDO, VOLUMEN_MUSICA_FONDO)
+
+            setOnErrorListener { reproductor, _, _ ->
+                reproductor.release()
+                reproductorMusicaFondo = null
+                true
+            }
+
+            start()
+        }
+    }
+
+    private fun reanudarMusicaFondo() {
+        val reproductor = reproductorMusicaFondo
+
+        if (reproductor == null) {
+            iniciarMusicaFondo()
+            return
+        }
+
+        try {
+            if (!reproductor.isPlaying) {
+                reproductor.start()
+            }
+        } catch (_: IllegalStateException) {
+            reproductorMusicaFondo?.release()
+            reproductorMusicaFondo = null
+            iniciarMusicaFondo()
+        }
+    }
+
+    private fun pausarMusicaFondo() {
+        try {
+            reproductorMusicaFondo?.let { reproductor ->
+                if (reproductor.isPlaying) {
+                    reproductor.pause()
+                }
+            }
+        } catch (_: IllegalStateException) {
+            reproductorMusicaFondo?.release()
+            reproductorMusicaFondo = null
+        }
+    }
+
+    private fun reproducirRisa() {
+        if (risaReproducida) return
+
+        risaReproducida = true
+
+        val reproductor = reproductorEfectos ?: return
+
+        if (!risaCargada) return
+
+        reproductor.play(
+            idSonidoRisa,
+            VOLUMEN_RISA,
+            VOLUMEN_RISA,
+            1,
+            0,
+            1f
+        )
+    }
+
+    private fun liberarReproductoresAudio() {
+        reproductorMusicaFondo?.release()
+        reproductorMusicaFondo = null
+
+        reproductorEfectos?.release()
+        reproductorEfectos = null
+
+        idSonidoRisa = 0
+        risaCargada = false
+    }
+
+    private fun inicializarEfectosSonido() {
+        if (reproductorEfectos != null) return
+
+        val atributosAudio = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_GAME)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+        reproductorEfectos = SoundPool.Builder()
+            .setMaxStreams(2)
+            .setAudioAttributes(atributosAudio)
+            .build()
+
+        reproductorEfectos?.setOnLoadCompleteListener { _, idMuestra, estado ->
+            if (estado == 0 && idMuestra == idSonidoRisa) {
+                risaCargada = true
+            }
+        }
+
+        idSonidoRisa = reproductorEfectos?.load(requireContext(), R.raw.risa, 1) ?: 0
     }
 }
