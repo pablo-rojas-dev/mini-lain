@@ -27,6 +27,7 @@ import kotlin.random.Random
 import android.media.MediaPlayer
 import android.media.AudioAttributes
 import android.media.SoundPool
+import android.view.inputmethod.InputMethodManager
 
 class LainFragment : Fragment() {
 
@@ -174,8 +175,10 @@ class LainFragment : Fragment() {
     }
 
     private fun configurarAccionTecladoEntrada() {
-        binding.etEntrada.setOnEditorActionListener { _, actionId, _ ->
+        binding.etEntrada.setOnEditorActionListener { vista, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
+                ocultarTeclado(vista)
+                binding.etEntrada.clearFocus()
                 binding.btnEnviar.performClick()
                 true
             } else {
@@ -606,6 +609,8 @@ class LainFragment : Fragment() {
             binding.btnEnviar.isVisible = true
             binding.btnEnviar.text = textoBoton
             binding.btnEnviar.setOnClickListener {
+                ocultarTeclado(binding.etEntrada)
+                binding.etEntrada.clearFocus()
                 alEnviar(binding.etEntrada.text.toString())
             }
         }
@@ -727,6 +732,17 @@ class LainFragment : Fragment() {
 
     private fun convertirADp(valor: Int): Int {
         return (valor * resources.displayMetrics.density).toInt()
+    }
+
+    // Teclado
+    private fun ocultarTeclado(vista: View) {
+        val administradorEntrada = requireContext()
+            .getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+
+        administradorEntrada.hideSoftInputFromWindow(
+            vista.windowToken,
+            0
+        )
     }
 
     // Audio
