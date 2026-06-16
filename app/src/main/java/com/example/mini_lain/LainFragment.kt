@@ -62,7 +62,6 @@ class LainFragment : Fragment() {
         INICIO,
         PREGUNTAR_NOMBRE,
         PRESENTACION,
-        PREGUNTAR_MOTIVO,
         PREGUNTAR_IDENTIDAD,
         PREGUNTA_FINAL,
         PREGUNTAR_NUMERO,
@@ -163,7 +162,6 @@ class LainFragment : Fragment() {
             EstadoFlujo.INICIO -> iniciarFlujo()
             EstadoFlujo.PREGUNTAR_NOMBRE -> preguntarNombre()
             EstadoFlujo.PRESENTACION -> mostrarPresentacion()
-            EstadoFlujo.PREGUNTAR_MOTIVO -> preguntarMotivo()
             EstadoFlujo.PREGUNTAR_IDENTIDAD -> preguntarIdentidad()
             EstadoFlujo.PREGUNTA_FINAL -> preguntarPreguntaFinal()
             EstadoFlujo.PREGUNTAR_NUMERO -> preguntarNumero()
@@ -268,30 +266,6 @@ class LainFragment : Fragment() {
         mostrarLinea(
             texto = "Mi nombre es Lain"
         ) {
-            preguntarMotivo()
-        }
-    }
-
-    private fun preguntarMotivo() {
-        estadoActual = EstadoFlujo.PREGUNTAR_MOTIVO
-
-        mostrarOpciones(
-            texto = "¿Qué haces aquí?",
-            opciones = listOf(
-                Opcion("No sé") {
-                    mostrarRespuestaMotivo()
-                },
-                Opcion("¿Tú sabes?") {
-                    mostrarRespuestaMotivo()
-                }
-            )
-        )
-    }
-
-    private fun mostrarRespuestaMotivo() {
-        mostrarLinea(
-            texto = "Yo tampoco sé qué hago aquí"
-        ) {
             preguntarIdentidad()
         }
     }
@@ -300,7 +274,7 @@ class LainFragment : Fragment() {
         estadoActual = EstadoFlujo.PREGUNTAR_IDENTIDAD
 
         mostrarOpciones(
-            texto = "¿Sabes quién soy?",
+            texto = "¿Sabes quién eres tu?",
             opciones = listOf(
                 Opcion(nombreJugador) {
                     mostrarLinea(
