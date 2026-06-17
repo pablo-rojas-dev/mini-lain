@@ -18,17 +18,3 @@ Si fallas entrará en bucle hasta que adivines el número, como si quedaras atra
 </td>
 </tr>
 </table>
-
-
-
-## TODO
-- ~~Agregar flujo de Lain~~
-- ~~Cuando el jugador pierda agregar sonido de risa de Lain~~
-- (?) Usuario o jugador
-- ~~Agregar intro present day, present time~~
-- ~~Agregar musica de fondo~~
-- (?) Cambiar los 5 numeros del 1 al  5 a 5 numeros aleatorios del 1 al 100?
-- Cambiar cache por room
-    - usuario, contraseña(?)
-- Agrega castigo a AFK
-- (?) Eliminar pregunta ¿sabes que haces aquí? o agregar variante dialogo
