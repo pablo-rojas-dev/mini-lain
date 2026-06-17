@@ -3,92 +3,110 @@
 flowchart TD
 
 A@{ shape: circle, label: "Start" } -->
+    Entrada[Escena: lain_entrada.gif] -->
+    Base[Escena: lain_base.gif] -->
+    Saludo[Lain: Hola...] -->
+    PreguntaNombre[Lain: ¿Cuál es tu nombre?] -->
+    UsuarioNombre[Usuario ingresa nombre] -->
+    ValidarNombre{¿El nombre está vacío?}
 
-    Entrada[Escena: lain-entrada.gif] -->
+ValidarNombre -->|Sí| NombreVacio[Lain: Escribe un nombre]
+NombreVacio --> PreguntaNombre
 
-    Base[Escena: lain-base.gif] -->
+ValidarNombre -->|No| NormalizarNombre[El sistema limpia y normaliza el nombre]
+NormalizarNombre --> VerificarUsuario{¿El usuario se llama Lain o ya existe en cache?}
 
-    Saludo[Hola...] -->
+VerificarUsuario -->|Sí| UsuarioExistente[Lain: Oh, hola nombre, parece que volviste...]
+UsuarioExistente --> MenuExistente{Lain: ¿Qué quieres hacer?}
 
-    PreguntaNombre[Lain: ¿Cuál es tu nombre?] -->
+MenuExistente -->|Jugar| GenerarNumero
+MenuExistente -->|Leer secreto| LoginSecreto[Escena: navi_login.gif]
 
-    UsuarioNombre[Usuario ingresa `nombre`] -->
+LoginSecreto --> PreguntarPasswordLeer[Lain: Escribe la contraseña]
+PreguntarPasswordLeer --> UsuarioPasswordLeer[Usuario ingresa contraseña]
+UsuarioPasswordLeer --> ValidarPasswordLeer{¿La contraseña está vacía?}
 
-    VerificarUsuario{El sistema verifica en la cache si el usuario ya habia jugado antes o se llama Lain o lain}
+ValidarPasswordLeer -->|Sí| PasswordLeerVacio[Lain: No escribiste nada.]
+PasswordLeerVacio --> PreguntarPasswordLeer
 
-    VerificarUsuario --> |Usuario ya registrado o se llama Lain o lain| UsuarioRegistrado[Lain: Oh, hola Lain, parece que quieres volver a jugar...]
+ValidarPasswordLeer -->|No| ValidarSecreto{¿Contraseña correcta y existe secreto?}
 
-    UsuarioRegistrado --> GenerarNumero
+ValidarSecreto -->|No| PasswordIncorrecto[Lain: Contraseña incorrecta... o no hay secreto guardado.]
+PasswordIncorrecto --> MenuExistente
 
-    VerificarUsuario --> |Usuario no registrado| UsuarioNoRegistrado[El sistema  registra el nombre del usuario en la cache]
+ValidarSecreto -->|Sí| EscenaSecreto[Escena: estatica_entrada.gif, estatica_base.gif]
+EscenaSecreto --> MostrarSecreto[El sistema muestra el secreto en texto grande]
+MostrarSecreto --> OpcionesSecreto{Opciones: Salir o Jugar}
 
-    UsuarioNoRegistrado --> SaludoNombre[Lain: Hola `nombre`]
+OpcionesSecreto -->|Salir| Z
+OpcionesSecreto -->|Jugar| ReintentarReto
 
-    SaludoNombre --> Presentacion[Lain: Mi nombre es Lain]
+VerificarUsuario -->|No| RegistrarUsuario[El sistema registra al usuario en cache]
+RegistrarUsuario --> SaludoNombre[Lain: Hola nombre]
+SaludoNombre --> Presentacion[Lain: Mi nombre es Lain]
+Presentacion --> PreguntaIdentidad{Lain: ¿Sabes quién eres tú?}
 
-    Presentacion -->
+PreguntaIdentidad -->|nombre| RespuestaIdentidadNombre[Lain: No, tú eres Lain yo soy nombre]
+PreguntaIdentidad -->|Lain| RespuestaIdentidadLain[Lain: Así es]
 
-    PreguntaMotivo{Lain: ¿Qué haces aquí?}
+RespuestaIdentidadNombre --> Reaparicion[Escena: lain_salida.gif, lain_entrada.gif, lain_base.gif]
+RespuestaIdentidadLain --> Reaparicion
 
-    PreguntaMotivo --> MotivoDesconocido[Usuario escoge opción `No lo sé`]
+Reaparicion --> SaludoLain[Lain: Hola Lain, soy nombre]
+SaludoLain --> PreguntaFinal{Lain: ¿Quieres volver a ser nombre?}
 
-    PreguntaMotivo --> MotivoReflexivo[Usuario escoge opción `¿Qué hago aquí?`]
+PreguntaFinal -->|Sí| GenerarNumero[El sistema genera un número aleatorio entre 1 y 5]
+PreguntaFinal -->|No| LainBurla[Lain: Tampoco me gustaría ser nombre...]
+LainBurla --> Derrota
 
-    MotivoDesconocido --> RespuestaMotivo[Lain: Yo tampoco sé qué hagó aquí]
+GenerarNumero --> PreguntaReto{Lain: ¿Adivina qué número estoy pensando?}
 
-    MotivoReflexivo --> RespuestaMotivo
+PreguntaReto -->|1| VerificarRespuesta
+PreguntaReto -->|2| VerificarRespuesta
+PreguntaReto -->|3| VerificarRespuesta
+PreguntaReto -->|4| VerificarRespuesta
+PreguntaReto -->|5| VerificarRespuesta
 
-    RespuestaMotivo --> PreguntaIdentidad{Lain: ¿Sabes quién soy?}
+VerificarRespuesta{¿El número elegido es igual al número secreto?}
 
-    PreguntaIdentidad --> IdentidadNombre[Usuario escoge opción `nombre`]
+VerificarRespuesta -->|No| Derrota[Suena risa / Lain: Jajaja, parece que te quedarás un buen rato aquí Lain...]
 
-    PreguntaIdentidad --> IdentidadLain[Usuario escoge opción `Lain`]
+Derrota --> Escape[Escena: lain_salida.gif, estatica_entrada.gif, estatica_base.gif]
+Escape --> GameOver[Texto grande: Perdiste]
+GameOver --> NuevoIntento{Opción: Nuevo intento}
+NuevoIntento --> ReintentarReto[Escena: estatica_salida.gif, lain_entrada.gif, lain_base.gif]
+ReintentarReto --> GenerarNumero
 
-    IdentidadNombre --> RespuestaIdentidadNombre[Lain: No, tu eres Lain]
+VerificarRespuesta -->|Sí| VictoriaLinea[Lain: Felicidades, supongo que me quedaré aquí...]
+VictoriaLinea --> UsuarioNuevoVictoria{¿El usuario es nuevo?}
 
-    IdentidadLain --> RespuestaIdentidadLain[Lain: Así es]
+UsuarioNuevoVictoria -->|No| OpcionesVictoria
+UsuarioNuevoVictoria -->|Sí| PreguntarGuardarSecreto{Lain: ¿Quieres guardar algún secreto?}
 
-    RespuestaIdentidadNombre --> Reaparicion[Escena: lain-salida.gif, lain-entrada.gif, lain-base.gif]
+PreguntarGuardarSecreto -->|No| OpcionesVictoria
+PreguntarGuardarSecreto -->|Sí| PreguntarSecreto[Lain: Escribe tu secreto]
 
-    RespuestaIdentidadLain --> Reaparicion
+PreguntarSecreto --> UsuarioSecreto[Usuario ingresa secreto]
+UsuarioSecreto --> ValidarSecretoNuevo{¿El secreto está vacío o tiene más de 8 palabras?}
 
-    Reaparicion --> SaludoLain[Lain: Hola Lain soy `nombre`]
+ValidarSecretoNuevo -->|Vacío| SecretoVacio[Lain: No puedo guardar un secreto vacío.]
+SecretoVacio --> PreguntarSecreto
 
-    SaludoLain --> PreguntaFinal{Lain: ¿Quieres volver a ser `nombre`?}
+ValidarSecretoNuevo -->|Más de 8 palabras| SecretoLargo[Lain: Solo puedo guardar secretos de máximo 8 palabras.]
+SecretoLargo --> PreguntarSecreto
 
-    PreguntaFinal --> RespuestaFinalSi[Usuario escoge la opción `Si`]
+ValidarSecretoNuevo -->|Válido| PreguntarPasswordNuevo[Lain: Ahora escribe una contraseña]
+PreguntarPasswordNuevo --> UsuarioPasswordNuevo[Usuario ingresa contraseña]
+UsuarioPasswordNuevo --> ValidarPasswordNuevo{¿La contraseña está vacía?}
 
-    PreguntaFinal --> RespuestaFinalNo[Usuario escoge la opción `No`]
+ValidarPasswordNuevo -->|Sí| PasswordNuevoVacio[Lain: La contraseña no puede estar vacía.]
+PasswordNuevoVacio --> PreguntarPasswordNuevo
 
-    RespuestaFinalNo --> LainBurla[Lain: Tampoco me  gustaría ser `nombre`...]
+ValidarPasswordNuevo -->|No| GuardarSecreto[El sistema guarda secreto y contraseña en cache]
+GuardarSecreto --> Recordar[Lain: Lo recordaré...]
+Recordar --> OpcionesVictoria
 
-    RespuestaFinalSi --> GenerarNumero[El sistema genera un numero aleatorio entre 1 y 5]
-
-    GenerarNumero --> PreguntaReto[Lain: Del 1 al 5 ¿adivina que número estoy pensando?]
-
-    PreguntaReto --> RespuestaReto[Usuario ingresa su respuesta]
-
-    RespuestaReto --> VerificacionRespuestaReto{El sistema verifica que la respuesta sea un numero entre 1 al 5}
-
-    VerificacionRespuestaReto --> |Respuesta no valida| NotificacionRespuestaInvalida[El sistema muestra un toast notificando que no es una respuesta valida y solicita de nuevo la respuesta]
-
-    NotificacionRespuestaInvalida --> PreguntaReto
-
-    VerificacionRespuestaReto --> |Respuesta valida| VerificacionRespuestaCorrecta{El sistema verifica si la respuesta es correcta}
-
-    VerificacionRespuestaCorrecta --> |Respuesta correcta| NotificacionRespuestaCorrecta[Felicidades, supongo que me quedaré aquí...]
-
-    VerificacionRespuestaCorrecta --> |Respuesta incorrecta| NotificacionRespuestaIncorrecta[Jajaja, parece que te quedaras un buen rato aquí Lain...]
-
-    NotificacionRespuestaCorrecta --> LainDesaparicion[Escena: salida-lain.gif, pantalla negra y boton `salir`]
-
-    NotificacionRespuestaIncorrecta --> LainEscapa[Escena: lain-salida.gif, estetica-entrada.gif, estatica-base.gif, en letras grandes sin fondo sobre estatica.gif `Ahora eres mío`]
-
-    LainBurla --> NotificacionRespuestaIncorrecta
-
-    LainDesaparicion --> Z
-
-    LainEscapa --> Z
-
-Z@{ shape: circle, label: "End" }
+OpcionesVictoria{Opciones: Salir u Otra vez}
+OpcionesVictoria -->|Salir| Z@{ shape: circle, label: "End" }
+OpcionesVictoria -->|Otra vez| ReintentarReto
 ```
