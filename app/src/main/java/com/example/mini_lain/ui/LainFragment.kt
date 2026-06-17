@@ -1,7 +1,10 @@
 package com.example.mini_lain.ui
 
 import android.content.Context
-import android.content.SharedPreferences
+import android.util.TypedValue
+import androidx.fragment.app.viewModels
+import com.example.mini_lain.model.Usuario
+import com.example.mini_lain.viewmodel.LainViewModel
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
@@ -35,8 +38,6 @@ class LainFragment : Fragment() {
     private var _binding: FragmentLainBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var cache: SharedPreferences
-
     private var nombreJugador: String = ""
     private var numeroSecreto: Int = 0
 
@@ -52,6 +53,12 @@ class LainFragment : Fragment() {
     private var estadoActual: EstadoFlujo = EstadoFlujo.INICIO
     private var textoGrandeActual: String = ""
 
+    private val viewModel: LainViewModel by viewModels()
+
+    private var usuarioActual: Usuario? = null
+    private var usuarioEsNuevo: Boolean = false
+    private var secretoPendiente: String = ""
+
     // Clases de Lain
 
     private data class Opcion(
@@ -65,8 +72,14 @@ class LainFragment : Fragment() {
         PRESENTACION,
         PREGUNTAR_IDENTIDAD,
         PREGUNTA_FINAL,
+        MENU_USUARIO_EXISTENTE,
         PREGUNTAR_NUMERO,
         NOTIFICACION_INCORRECTA,
+        PREGUNTAR_GUARDAR_SECRETO,
+        PREGUNTAR_SECRETO,
+        PREGUNTAR_CONTRASENA_NUEVO_SECRETO,
+        PREGUNTAR_CONTRASENA_LEER_SECRETO,
+        MOSTRAR_SECRETO,
         OPCIONES_VICTORIA,
         PANTALLA_PERDER,
         TEXTO_GRANDE
@@ -75,7 +88,6 @@ class LainFragment : Fragment() {
     // Constantes
 
     companion object {
-        private const val CLAVE_NOMBRE_JUGADOR = "nombre_jugador"
         private const val CLAVE_NUMERO_SECRETO = "numero_secreto"
         private const val CLAVE_ESCENA_ACTUAL = "escena_actual"
         private const val CLAVE_ESTADO_ACTUAL = "estado_actual"
@@ -83,6 +95,8 @@ class LainFragment : Fragment() {
         private const val CLAVE_RISA = "risa"
         private const val VOLUMEN_MUSICA_FONDO = 0.35f
         private const val VOLUMEN_RISA = 1.0f
+        private const val CLAVE_USUARIO_ES_NUEVO = "usuario_es_nuevo"
+        private const val CLAVE_SECRETO_PENDIENTE = "secreto_pendiente"
     }
 
     // Ciclo de Android
@@ -97,7 +111,6 @@ class LainFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        cache = requireContext().getSharedPreferences("mini_lain_cache", Context.MODE_PRIVATE)
 
         configurarAccionTecladoEntrada()
         inicializarEfectosSonido()
@@ -113,12 +126,13 @@ class LainFragment : Fragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
 
-        outState.putString(CLAVE_NOMBRE_JUGADOR, nombreJugador)
         outState.putInt(CLAVE_NUMERO_SECRETO, numeroSecreto)
         outState.putInt(CLAVE_ESCENA_ACTUAL, escenaActual)
         outState.putString(CLAVE_ESTADO_ACTUAL, estadoActual.name)
         outState.putString(CLAVE_TEXTO_GRANDE, textoGrandeActual)
         outState.putBoolean(CLAVE_RISA, risaReproducida)
+        outState.putBoolean(CLAVE_USUARIO_ES_NUEVO, usuarioEsNuevo)
+        outState.putString(CLAVE_SECRETO_PENDIENTE, secretoPendiente)
     }
 
     override fun onResume() {
@@ -142,7 +156,6 @@ class LainFragment : Fragment() {
     // Flujo y configuracion
 
     private fun restaurarFlujo(savedInstanceState: Bundle) {
-        nombreJugador = savedInstanceState.getString(CLAVE_NOMBRE_JUGADOR, "")
         numeroSecreto = savedInstanceState.getInt(CLAVE_NUMERO_SECRETO, 0)
         escenaActual = savedInstanceState.getInt(CLAVE_ESCENA_ACTUAL, R.drawable.lain_base)
 
@@ -157,6 +170,9 @@ class LainFragment : Fragment() {
             false
         )
 
+        usuarioEsNuevo = savedInstanceState.getBoolean(CLAVE_USUARIO_ES_NUEVO, false)
+        secretoPendiente = savedInstanceState.getString(CLAVE_SECRETO_PENDIENTE, "")
+
         mostrarEscena(escenaActual)
 
         when (estadoActual) {
@@ -170,6 +186,12 @@ class LainFragment : Fragment() {
             EstadoFlujo.OPCIONES_VICTORIA -> mostrarOpcionesVictoria()
             EstadoFlujo.PANTALLA_PERDER -> mostrarPantallaGameOver()
             EstadoFlujo.TEXTO_GRANDE -> mostrarTextoGrande(textoGrandeActual)
+            EstadoFlujo.MENU_USUARIO_EXISTENTE -> mostrarMenuUsuarioExistente()
+            EstadoFlujo.PREGUNTAR_GUARDAR_SECRETO -> preguntarGuardarSecreto()
+            EstadoFlujo.PREGUNTAR_SECRETO -> preguntarSecreto()
+            EstadoFlujo.PREGUNTAR_CONTRASENA_NUEVO_SECRETO -> preguntarContrasenaNuevoSecreto()
+            EstadoFlujo.PREGUNTAR_CONTRASENA_LEER_SECRETO -> preguntarContrasenaParaLeerSecreto()
+            EstadoFlujo.MOSTRAR_SECRETO -> mostrarSecreto(textoGrandeActual)
         }
     }
 
@@ -237,28 +259,53 @@ class LainFragment : Fragment() {
 
     private fun verificarUsuario() {
         val nombreMinusculas = nombreJugador.trim().lowercase()
-        val clave = crearClaveUsuario(nombreJugador)
-
         val esLain = nombreMinusculas == "lain"
-        val yaRegistrado = esLain || cache.getBoolean(clave, false)
 
-        if (yaRegistrado) {
-            mostrarLinea(
-                texto = "Oh, hola $nombreJugador, parece que quieres volver a jugar..."
-            ) {
-                iniciarRetoNumero()
+        viewLifecycleOwner.lifecycleScope.launch {
+            val usuario = if (esLain) {
+                null
+            } else {
+                viewModel.obtenerUsuario(nombreJugador)
             }
-        } else {
-            cache.edit()
-                .putBoolean(clave, true)
-                .apply()
 
-            mostrarLinea(
-                texto = "Hola $nombreJugador"
-            ) {
-                mostrarPresentacion()
+            usuarioActual = usuario
+
+            if (esLain || usuario != null) {
+                usuarioEsNuevo = false
+
+                mostrarLinea(
+                    texto = "Oh, hola $nombreJugador, parece que volviste..."
+                ) {
+                    mostrarMenuUsuarioExistente()
+                }
+            } else {
+                usuarioEsNuevo = true
+                usuarioActual = viewModel.registrarUsuario(nombreJugador)
+
+                mostrarLinea(
+                    texto = "Hola $nombreJugador"
+                ) {
+                    mostrarPresentacion()
+                }
             }
         }
+    }
+
+    private fun mostrarMenuUsuarioExistente() {
+        estadoActual = EstadoFlujo.MENU_USUARIO_EXISTENTE
+
+        mostrarOpciones(
+            texto = "¿Qué quieres hacer?",
+            opciones = listOf(
+                Opcion("Jugar") {
+                    usuarioEsNuevo = false
+                    iniciarRetoNumero()
+                },
+                Opcion("Leer secreto") {
+                    iniciarLoginSecreto()
+                }
+            )
+        )
     }
 
     private fun mostrarPresentacion() {
@@ -356,7 +403,11 @@ class LainFragment : Fragment() {
                         mostrarLinea(
                             texto = "Felicidades, supongo que me quedaré aquí..."
                         ) {
-                            mostrarFinalDesaparicion()
+                            if (usuarioEsNuevo) {
+                                preguntarGuardarSecreto()
+                            } else {
+                                mostrarFinalDesaparicion()
+                            }
                         }
                     } else {
                         mostrarNotificacionIncorrectaYEscape()
@@ -364,6 +415,96 @@ class LainFragment : Fragment() {
                 }
             }
         )
+    }
+
+    private fun preguntarGuardarSecreto() {
+        estadoActual = EstadoFlujo.PREGUNTAR_GUARDAR_SECRETO
+
+        mostrarEscena(R.drawable.lain_base)
+
+        mostrarOpciones(
+            texto = "¿Quieres guardar algún secreto?",
+            opciones = listOf(
+                Opcion("Sí") {
+                    preguntarSecreto()
+                },
+                Opcion("No") {
+                    mostrarOpcionesVictoria()
+                }
+            )
+        )
+    }
+
+    private fun preguntarSecreto() {
+        estadoActual = EstadoFlujo.PREGUNTAR_SECRETO
+
+        mostrarEntrada(
+            texto = "Escribe tu secreto",
+            pista = "Máximo 8 palabras",
+            tipoEntrada = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
+            textoBoton = "Guardar"
+        ) { valor ->
+            val secretoLimpio = valor.trim().replace(Regex("\\s+"), " ")
+
+            if (secretoLimpio.isBlank()) {
+                mostrarLinea(
+                    texto = "No puedo guardar un secreto vacío."
+                ) {
+                    preguntarSecreto()
+                }
+                return@mostrarEntrada
+            }
+
+            if (contarPalabras(secretoLimpio) > 8) {
+                mostrarLinea(
+                    texto = "Solo puedo guardar secretos de máximo 8 palabras."
+                ) {
+                    preguntarSecreto()
+                }
+                return@mostrarEntrada
+            }
+
+            secretoPendiente = secretoLimpio
+            preguntarContrasenaNuevoSecreto()
+        }
+    }
+
+    private fun preguntarContrasenaNuevoSecreto() {
+        estadoActual = EstadoFlujo.PREGUNTAR_CONTRASENA_NUEVO_SECRETO
+
+        mostrarEntrada(
+            texto = "Ahora escribe una contraseña",
+            pista = "Contraseña",
+            tipoEntrada = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            textoBoton = "Guardar"
+        ) { valor ->
+            val contrasena = valor.trim()
+
+            if (contrasena.isBlank()) {
+                mostrarLinea(
+                    texto = "La contraseña no puede estar vacía."
+                ) {
+                    preguntarContrasenaNuevoSecreto()
+                }
+                return@mostrarEntrada
+            }
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                usuarioActual = viewModel.guardarSecreto(
+                    nombre = nombreJugador,
+                    secreto = secretoPendiente,
+                    contrasena = contrasena
+                )
+
+                secretoPendiente = ""
+
+                mostrarLinea(
+                    texto = "Lo recordaré..."
+                ) {
+                    mostrarOpcionesVictoria()
+                }
+            }
+        }
     }
 
     private fun mostrarNotificacionIncorrectaYEscape() {
@@ -454,6 +595,7 @@ class LainFragment : Fragment() {
         estadoActual = EstadoFlujo.PANTALLA_PERDER
         textoGrandeActual = "Perdiste"
 
+        binding.tvTextoGrande.setTextSize(TypedValue.COMPLEX_UNIT_SP, 48f)
         binding.tvTextoGrande.isVisible = true
         binding.tvTextoGrande.text = "Perdiste"
 
@@ -639,6 +781,7 @@ class LainFragment : Fragment() {
         textoGrandeActual = texto
 
         binding.llPanelDialogo.isVisible = false
+        binding.tvTextoGrande.setTextSize(TypedValue.COMPLEX_UNIT_SP, 48f)
         binding.tvTextoGrande.isVisible = true
         binding.tvTextoGrande.text = texto
     }
@@ -700,10 +843,6 @@ class LainFragment : Fragment() {
     }
 
     // Utilidades
-
-    private fun crearClaveUsuario(nombre: String): String {
-        return "usuario_registrado_${nombre.lowercase().trim()}"
-    }
 
     private fun convertirADp(valor: Int): Int {
         return (valor * resources.displayMetrics.density).toInt()
@@ -821,5 +960,106 @@ class LainFragment : Fragment() {
         }
 
         idSonidoRisa = reproductorEfectos?.load(requireContext(), R.raw.risa, 1) ?: 0
+    }
+
+    private fun iniciarLoginSecreto() {
+        trabajoSecuencia?.cancel()
+
+        ocultarPanel()
+        ocultarTextoGrande()
+
+        trabajoSecuencia = viewLifecycleOwner.lifecycleScope.launch {
+            mostrarEscena(R.drawable.navi_login)
+            delay(900)
+
+            preguntarContrasenaParaLeerSecreto()
+        }
+    }
+
+    private fun preguntarContrasenaParaLeerSecreto() {
+        estadoActual = EstadoFlujo.PREGUNTAR_CONTRASENA_LEER_SECRETO
+
+        mostrarEntrada(
+            texto = "Escribe la contraseña",
+            pista = "Contraseña",
+            tipoEntrada = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            textoBoton = "Entrar"
+        ) { valor ->
+            val contrasena = valor.trim()
+
+            if (contrasena.isBlank()) {
+                mostrarLinea(
+                    texto = "No escribiste nada."
+                ) {
+                    preguntarContrasenaParaLeerSecreto()
+                }
+                return@mostrarEntrada
+            }
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                val usuarioConSecreto = viewModel.validarContrasena(
+                    nombre = nombreJugador,
+                    contrasena = contrasena
+                )
+
+                if (usuarioConSecreto == null) {
+                    mostrarLinea(
+                        texto = "Contraseña incorrecta... o no hay secreto guardado."
+                    ) {
+                        mostrarMenuUsuarioExistente()
+                    }
+                } else {
+                    mostrarSecuenciaSecreto(
+                        secreto = usuarioConSecreto.secreto.orEmpty()
+                    )
+                }
+            }
+        }
+    }
+
+    private fun mostrarSecuenciaSecreto(secreto: String) {
+        trabajoSecuencia?.cancel()
+
+        ocultarPanel()
+        ocultarTextoGrande()
+
+        trabajoSecuencia = viewLifecycleOwner.lifecycleScope.launch {
+            mostrarEscena(R.drawable.estatica_entrada)
+            delay(1600)
+
+            mostrarEscena(R.drawable.estatica_base)
+            delay(700)
+
+            mostrarSecreto(secreto)
+        }
+    }
+
+    private fun mostrarSecreto(secreto: String) {
+        estadoActual = EstadoFlujo.MOSTRAR_SECRETO
+        textoGrandeActual = secreto
+
+        binding.tvTextoGrande.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+        binding.tvTextoGrande.isVisible = true
+        binding.tvTextoGrande.text = secreto
+
+        mostrarBotonesInferiores(
+            opciones = listOf(
+                Opcion("Salir") {
+                    requireActivity().finishAffinity()
+                },
+                Opcion("Jugar") {
+                    usuarioEsNuevo = false
+                    reintentarRetoNumero()
+                }
+            )
+        )
+    }
+
+    private fun contarPalabras(texto: String): Int {
+        return texto
+            .trim()
+            .split(Regex("\\s+"))
+            .filter { palabra -> palabra.isNotBlank() }
+            .size
     }
 }
