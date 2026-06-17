@@ -18,3 +18,42 @@ Si fallas entrará en bucle hasta que adivines el número, como si quedaras atra
 </td>
 </tr>
 </table>
+
+## Algoritmo simplificado
+A continuación se describe de forma simplificado el flujo de la aplicación, el [algoritmo completo](./doc/algoritmo.md) es en `doc/`.
+
+```mermaid
+flowchart TD
+
+A([Inicio]) --> Intro[Mostrar animación inicial de Lain]
+Intro --> Nombre[Lain pregunta el nombre del usuario]
+Nombre --> Verificar{¿Usuario existente o se llama Lain?}
+
+Verificar -->|Sí| Menu[Mostrar menú: Jugar o Leer secreto]
+Verificar -->|No| Registro[Registrar usuario nuevo]
+Registro --> Identidad[Secuencia de identidad con Lain]
+Identidad --> PreguntaFinal{¿Quiere volver a ser su nombre?}
+
+PreguntaFinal -->|No| Derrota
+PreguntaFinal -->|Sí| Reto
+
+Menu -->|Jugar| Reto[Adivinar número del 1 al 5]
+Menu -->|Leer secreto| LeerSecreto[Validar contraseña y mostrar secreto]
+
+Reto --> Validar{¿Número correcto?}
+
+Validar -->|No| Derrota[Escena de escape / Game Over]
+Validar -->|Sí| Victoria[Victoria del usuario]
+
+Victoria --> Nuevo{¿Usuario nuevo quiere guardar secreto?}
+Nuevo -->|Sí| Guardar[Guardar secreto con contraseña]
+Nuevo -->|No| OpcionesFinales
+
+Guardar --> OpcionesFinales[Opciones: Salir u Otra vez]
+LeerSecreto --> OpcionesFinales
+Derrota --> Reintento[Opción: Nuevo intento]
+
+Reintento --> Reto
+OpcionesFinales -->|Otra vez| Reto
+OpcionesFinales -->|Salir| Z([Fin])
+```
