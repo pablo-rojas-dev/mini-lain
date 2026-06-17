@@ -243,7 +243,7 @@ class LainFragment : Fragment() {
 
         if (yaRegistrado) {
             mostrarLinea(
-                texto = "Oh, hola Lain, parece que quieres volver a jugar..."
+                texto = "Oh, hola $nombreJugador, parece que quieres volver a jugar..."
             ) {
                 iniciarRetoNumero()
             }
