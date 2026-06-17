@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.example.mini_lain.databinding.ActivityMainBinding
+import com.example.mini_lain.ui.LainFragment
 
 class MainActivity : AppCompatActivity() {
 

@@ -1,4 +1,4 @@
-package com.example.mini_lain
+package com.example.mini_lain.ui
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -28,6 +28,7 @@ import android.media.MediaPlayer
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.view.inputmethod.InputMethodManager
+import com.example.mini_lain.R
 
 class LainFragment : Fragment() {
 

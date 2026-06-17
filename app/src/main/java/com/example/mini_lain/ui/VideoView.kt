@@ -1,4 +1,4 @@
-package com.example.mini_lain
+package com.example.mini_lain.ui
 
 import android.content.Context
 import android.util.AttributeSet
