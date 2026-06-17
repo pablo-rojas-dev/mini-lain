@@ -19,7 +19,7 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <FrameLayout
-        android:id="@+id/flContenedorVideoIntro"
+        android:id="@+id/flContenedorIntro"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="@android:color/black"
@@ -31,12 +31,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <com.example.mini_lain.ui.VideoView
-            android:id="@+id/vvVideoIntro"
-            android:layout_width="wrap_content"
+        <ImageView
+            android:id="@+id/ivIntro"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
-            android:background="@android:color/black" />
+            android:background="@android:color/black"
+            android:contentDescription="Intro de Lain"
+            android:scaleType="centerCrop" />
 
     </FrameLayout>
 

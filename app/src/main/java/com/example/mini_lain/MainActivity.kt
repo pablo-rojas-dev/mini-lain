@@ -1,9 +1,11 @@
 package com.example.mini_lain
 
-import android.net.Uri
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.mini_lain.databinding.ActivityMainBinding
 import com.example.mini_lain.ui.LainFragment
 
@@ -12,11 +14,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     private var introduccionTerminada: Boolean = false
+    private var reproductorAudioIntro: MediaPlayer? = null
 
     companion object {
         private const val CLAVE_INTRODUCCION_TERMINADA = "introduccion_terminada"
 
-        private const val VOLUMEN_VIDEO_INTRO = 0.85f
+        private const val VOLUMEN_AUDIO_INTRO = 0.85f
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,10 +34,10 @@ class MainActivity : AppCompatActivity() {
         ) ?: false
 
         if (introduccionTerminada) {
-            ocultarVideoIntro()
+            ocultarIntro()
             mostrarJuegoSiHaceFalta()
         } else {
-            reproducirVideoIntro()
+            reproducirIntro()
         }
     }
 
@@ -44,64 +47,69 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        binding.vvVideoIntro.setOnPreparedListener(null)
-        binding.vvVideoIntro.setOnCompletionListener(null)
-        binding.vvVideoIntro.setOnErrorListener(null)
-        binding.vvVideoIntro.stopPlayback()
+        liberarAudioIntro()
+        Glide.with(this).clear(binding.ivIntro)
 
         super.onDestroy()
     }
 
-    private fun reproducirVideoIntro() {
-        binding.flContenedorVideoIntro.visibility = View.VISIBLE
-        binding.flContenedorVideoIntro.bringToFront()
+    private fun reproducirIntro() {
+        binding.flContenedorIntro.visibility = View.VISIBLE
+        binding.flContenedorIntro.bringToFront()
 
-        binding.vvVideoIntro.visibility = View.VISIBLE
-        binding.vvVideoIntro.setZOrderOnTop(true)
+        binding.ivIntro.visibility = View.VISIBLE
 
-        val uriVideo = Uri.parse(
-            "android.resource://$packageName/${R.raw.lain_intro}"
-        )
+        Glide.with(this)
+            .asGif()
+            .load(R.drawable.lain_intro)
+            .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+            .into(binding.ivIntro)
 
-        binding.vvVideoIntro.setVideoURI(uriVideo)
+        reproductorAudioIntro = MediaPlayer.create(this, R.raw.lain_intro)?.apply {
+            isLooping = false
+            setVolume(VOLUMEN_AUDIO_INTRO, VOLUMEN_AUDIO_INTRO)
 
-        binding.vvVideoIntro.setOnPreparedListener { reproductor ->
-            reproductor.isLooping = false
-            reproductor.setVolume(VOLUMEN_VIDEO_INTRO, VOLUMEN_VIDEO_INTRO)
-
-            binding.vvVideoIntro.establecerTamanioVideo(
-                ancho = reproductor.videoWidth,
-                alto = reproductor.videoHeight
-            )
-
-            binding.vvVideoIntro.post {
-                binding.vvVideoIntro.start()
+            setOnCompletionListener {
+                terminarIntro()
             }
+
+            setOnErrorListener { reproductor, _, _ ->
+                reproductor.release()
+                reproductorAudioIntro = null
+                terminarIntro()
+                true
+            }
+
+            start()
         }
 
-        binding.vvVideoIntro.setOnCompletionListener {
-            introduccionTerminada = true
-            ocultarVideoIntro()
-            mostrarJuegoSiHaceFalta()
-        }
-
-        binding.vvVideoIntro.setOnErrorListener { _, _, _ ->
-            introduccionTerminada = true
-            ocultarVideoIntro()
-            mostrarJuegoSiHaceFalta()
-            true
+        if (reproductorAudioIntro == null) {
+            terminarIntro()
         }
     }
 
-    private fun ocultarVideoIntro() {
-        binding.vvVideoIntro.setOnPreparedListener(null)
-        binding.vvVideoIntro.setOnCompletionListener(null)
-        binding.vvVideoIntro.setOnErrorListener(null)
+    private fun ocultarIntro() {
+        liberarAudioIntro()
 
-        binding.vvVideoIntro.stopPlayback()
-        binding.vvVideoIntro.setZOrderOnTop(false)
-        binding.vvVideoIntro.visibility = View.GONE
-        binding.flContenedorVideoIntro.visibility = View.GONE
+        Glide.with(this).clear(binding.ivIntro)
+
+        binding.ivIntro.visibility = View.GONE
+        binding.flContenedorIntro.visibility = View.GONE
+    }
+
+    private fun terminarIntro() {
+        if (introduccionTerminada) return
+
+        introduccionTerminada = true
+        ocultarIntro()
+        mostrarJuegoSiHaceFalta()
+    }
+
+    private fun liberarAudioIntro() {
+        reproductorAudioIntro?.setOnCompletionListener(null)
+        reproductorAudioIntro?.setOnErrorListener(null)
+        reproductorAudioIntro?.release()
+        reproductorAudioIntro = null
     }
 
     private fun mostrarJuegoSiHaceFalta() {
